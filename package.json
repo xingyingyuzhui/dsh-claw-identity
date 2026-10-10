@@ -1,7 +1,7 @@
 {
   "name": "dsh-claw-identity",
   "version": "0.3.0-rc.1",
-  "description": "Phase 1 Claw identity: inject core workspace files into the agent prompt. 把核心人设文件打进 Claw Agent 提示词。",
+  "description": "Claw agent identity for DeepSeek Harness: injects each agent's persona files (SOUL / AGENTS / USER …) into its prompt. 把每个 Claw Agent 的人设文件打进它的提示词。",
   "keywords": [
     "dsh",
     "dsh-plugin",

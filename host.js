@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, rename, unlink, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
 import { httpError, registerJsonRoute } from 'dsh-claw-core/http'
 import {
   BOOTSTRAP_FILE,
@@ -30,6 +31,18 @@ async function readOptionalFile(path) {
     return await readFile(path, 'utf8')
   } catch (error) {
     if (error && error.code === 'ENOENT') return ''
+    throw error
+  }
+}
+
+// rename replaces a symlink at `path` instead of writing through it.
+async function atomicWrite(path, text) {
+  const tmp = path + '.' + process.pid + '.' + randomUUID() + '.tmp'
+  try {
+    await writeFile(tmp, text)
+    await rename(tmp, path)
+  } catch (error) {
+    await unlink(tmp).catch(() => {})
     throw error
   }
 }
@@ -110,7 +123,7 @@ export function apply(ctx) {
         const path = safeJoin(root, name, dshHome)
         if (!path) continue
         const text = typeof incoming[name] === 'string' ? incoming[name] : ''
-        await writeFile(path, text)
+        await atomicWrite(path, text)
         written.push(name)
       }
       ensureMemoryDir(root)
