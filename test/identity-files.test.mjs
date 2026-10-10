@@ -34,10 +34,20 @@ test('isClawHomePath uses join containment, not a slash prefix', async () => {
   assert.equal(isClawHomePath(home, join(home, 'DSclaw')), false)
 })
 
-test('safeJoin refuses path escape', () => {
-  assert.equal(safeJoin('/Users/qin/.dsh/DSclaw/test1', 'SOUL.md'), '/Users/qin/.dsh/DSclaw/test1/SOUL.md')
-  assert.equal(safeJoin('/Users/qin/DSH', 'SOUL.md'), '')
-  assert.equal(safeJoin('/Users/qin/.dsh/DSclaw/test1', '../x'), '')
+test('safeJoin refuses path escape', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'id-join-'))
+  const root = join(home, 'DSclaw', 'test1')
+  await mkdir(root, { recursive: true })
+  const prev = process.env.DSH_HOME
+  process.env.DSH_HOME = home
+  try {
+    assert.equal(safeJoin(root, 'SOUL.md'), join(root, 'SOUL.md'))
+    assert.equal(safeJoin(join(home, 'Desktop'), 'SOUL.md'), '')
+    assert.equal(safeJoin(root, '../x'), '')
+  } finally {
+    if (prev === undefined) delete process.env.DSH_HOME
+    else process.env.DSH_HOME = prev
+  }
 })
 
 test('renderIdentityPrompt skips empty files', () => {

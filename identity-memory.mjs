@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { clipText } from './identity-files.mjs'
 
@@ -82,6 +83,13 @@ export function appendDailyNote(root, text, now = new Date(), io) {
   const path = dailyFile(root, dateKey(now))
   const prev = readOptional(path, io)
   const next = (prev && !prev.endsWith('\n') ? prev + '\n' : prev) + note + '\n'
-  ;(io && io.writeFileSync ? io.writeFileSync : writeFileSync)(path, next)
+  const tmp = path + '.' + process.pid + '.' + randomUUID() + '.tmp'
+  try {
+    ;(io && io.writeFileSync ? io.writeFileSync : writeFileSync)(tmp, next)
+    ;(io && io.renameSync ? io.renameSync : renameSync)(tmp, path)
+  } catch (error) {
+    try { (io && io.unlinkSync ? io.unlinkSync : unlinkSync)(tmp) } catch { /* never created */ }
+    throw error
+  }
   return path
 }

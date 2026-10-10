@@ -1,9 +1,8 @@
 // Pure helpers for Claw identity files. No network.
 
-import { realpathSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, join, relative, resolve } from 'node:path'
-import { escapesHome } from '../dsh-session-permissions/perm-path.mjs'
+import { join, relative, resolve } from 'node:path'
+import { canonicalizePath, isPathInside, relativeEscapes } from 'dsh-claw-core/path-containment'
 
 export const IDENTITY_FILES = ['AGENTS.md', 'SOUL.md', 'TOOLS.md', 'IDENTITY.md', 'USER.md', 'HEARTBEAT.md', 'MEMORY.md', 'BOOTSTRAP.md']
 export const WRITABLE_IDENTITY_FILES = ['AGENTS.md', 'SOUL.md', 'TOOLS.md', 'IDENTITY.md', 'HEARTBEAT.md']
@@ -17,28 +16,12 @@ export function defaultDshHome() {
   return process.env.DSH_HOME || join(homedir(), '.dsh')
 }
 
-function existingRealpath(path) {
-  let abs = resolve(String(path))
-  const tail = []
-  while (true) {
-    try {
-      const real = realpathSync(abs)
-      return tail.length === 0 ? real : join(real, ...tail)
-    } catch {
-      const parent = dirname(abs)
-      if (parent === abs) return abs
-      tail.unshift(basename(abs))
-      abs = parent
-    }
-  }
-}
-
 export function isClawHomePath(dshHome, path) {
   if (!dshHome || typeof path !== 'string' || path === '') return false
-  const clawRoot = existingRealpath(join(String(dshHome), CLAW_DIR))
-  const target = existingRealpath(path)
+  const clawRoot = canonicalizePath(join(String(dshHome), CLAW_DIR))
+  const target = canonicalizePath(path)
   const rel = relative(clawRoot, target)
-  return rel !== '' && !escapesHome(rel)
+  return rel !== '' && !relativeEscapes(rel)
 }
 
 export function isDsClawPath(path, dshHome) {
@@ -99,12 +82,20 @@ export function renderIdentityPrompt(files) {
   return header.join('\n') + parts.join('\n\n')
 }
 
+/**
+ * Resolve an identity file under one agent root. The file's realpath must stay
+ * inside that root's realpath, so a symlink to another agent (or outside
+ * DSclaw) is refused.
+ */
 export function safeJoin(root, name, dshHome) {
   if (!isDsClawPath(root, dshHome) || !isIdentityFile(name)) return ''
   const base = resolve(String(root))
   const target = resolve(base, name)
   if (!isClawHomePath(dshHome || defaultDshHome(), target)) return ''
   const rel = relative(base, target)
-  if (rel && escapesHome(rel)) return ''
+  if (rel && relativeEscapes(rel)) return ''
+  const realBase = canonicalizePath(base)
+  const realTarget = canonicalizePath(target)
+  if (realTarget === realBase || !isPathInside(realBase, realTarget)) return ''
   return target
 }
