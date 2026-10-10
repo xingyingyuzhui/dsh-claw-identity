@@ -1,6 +1,6 @@
 {
   "name": "dsh-claw-identity",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0-rc.2",
   "description": "Claw agent identity for DeepSeek Harness: injects each agent's persona files (SOUL / AGENTS / USER …) into its prompt. 把每个 Claw Agent 的人设文件打进它的提示词。",
   "keywords": [
     "dsh",
@@ -38,7 +38,7 @@
     }
   },
   "dependencies": {
-    "dsh-claw-core": "0.3.0-rc.1"
+    "dsh-claw-core": "0.3.0-rc.2"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh": "^0.2.0-rc.1"
